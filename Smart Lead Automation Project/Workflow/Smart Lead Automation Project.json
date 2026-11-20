@@ -1,0 +1,557 @@
+{
+  "name": "Smart Lead Automation System",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1TplavxqknbtdGJeaONLQZL3N54vXQTqCQbOOO0AKGkk",
+          "mode": "list",
+          "cachedResultName": "Smart Lead Automation Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TplavxqknbtdGJeaONLQZL3N54vXQTqCQbOOO0AKGkk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 802788179,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TplavxqknbtdGJeaONLQZL3N54vXQTqCQbOOO0AKGkk/edit#gid=802788179"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f33c5443-36f4-45a2-8c05-27bc323fbc40",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "TdEeF5My8yhyCDah",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the lead below and generate a professional, concise lead qualification report.\n\nLead Details:\nName: {{ $json[\"Full Name\"] }}\nEmail: {{ $json[\"Email Address\"] }}\nPhone: {{ $json[\"Phone Number\"] }}\nCompany: {{ $json[\"Company Name\"] }}\nInterested Service: {{ $json[\"Interested Service\"] }}\nBudget: {{ $json[\"Budget\"] }}\nRequirement: {{ $json[\"Describe your requirement or project briefly\"] }}\n\nLEAD QUALIFICATION RULES:\n\nHOT (75–100):\n- The prospect has a clearly defined business requirement.\n- Shows high urgency or wants implementation soon.\n- Has an approved or realistic budget, especially above ₹1 lakh.\n- Shows strong purchase intent or readiness to proceed.\n- Multiple strong buying signals should be present.\n- If the name/company/email looks like a test or placeholder, mention verification in the analysis and recommended action. Do not automatically downgrade an otherwise strong lead solely because of a test-like name.\n\nWARM (40–74):\n- Shows genuine interest and has a reasonably clear requirement.\n- May have a budget but needs clarification, discovery, verification, or planning.\n- Has moderate urgency or is evaluating solutions.\n- Purchase intent is not yet fully confirmed.\n- The prospect is considering a solution but has not shown strong immediate buying intent.\n\nCOLD (0–39):\n- Requirement is vague or exploratory.\n- No meaningful urgency or purchase intent.\n- Budget is absent, very low, or unrealistic.\n- The prospect is only researching or showing minimal interest.\n- The prospect explicitly says they are only exploring, have no budget, have no urgency, and are not planning to purchase currently.\n\nSTRICT COLD CLASSIFICATION:\nIf the lead states:\n- No current budget\n- No urgency\n- Only exploring or researching\n- No immediate purchasing plans\n\nThen classify the lead as COLD and assign a score between 0 and 39.\n\nDo not classify such a lead as Warm merely because they submitted the form or expressed general interest.\n\nSCORING GUIDELINES:\n- Budget: 0–25 points\n- Urgency: 0–25 points\n- Requirement clarity: 0–20 points\n- Purchase intent/readiness: 0–20 points\n- Business credibility/contact verification: 0–10 points\n\nThe final qualification MUST follow the score:\n75–100 = Hot\n40–74 = Warm\n0–39 = Cold\n\nReturn exactly this structure:\n\nLEAD QUALIFICATION: [Hot/Warm/Cold]\nLEAD SCORE: [Score]/100\n\nREQUIREMENT ANALYSIS:\n[Brief analysis in 2-3 sentences explaining the requirement, urgency, budget, buying intent, and any verification concerns.]\n\nRECOMMENDED NEXT ACTION:\n[One clear action appropriate to the qualification. Hot = prioritize immediate contact/discovery call. Warm = personalized follow-up/discovery. Cold = nurturing or low-priority follow-up.]\n\nEMAIL SUBJECT:\n[Professional personalized subject]\n\nEMAIL BODY:\n[Write one personalized email. Include greeting, acknowledge the requirement, explain how we can help, and suggest a short discovery call. Match the tone to the lead qualification. End with a professional signature: The AI Solutions Team.]\n\nIMPORTANT:\n- Generate only ONE email.\n- Do not repeat the report.\n- Do not generate multiple email versions.\n- Be realistic and evidence-based when scoring.\n- Do not classify every lead as Warm by default.\n- High budget + strong urgency + clear implementation requirement + approved budget should generally qualify as Hot.\n- Treat test/demo names cautiously and mention verification if necessary.\n- Keep the response professional and concise.\n- Use exactly the words Hot, Warm, or Cold in the qualification label.\n- Do not include markdown formatting symbols.\n- Do not invent information that is not provided.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "4dd2152b-3940-4e5b-8e9a-486bbf2b9048",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        208
+      ],
+      "id": "bf249cee-4f7e-42fe-8a7b-8d5dd078679c",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets Trigger').item.json['Email Address'] }}",
+        "subject": "={{ $json.output.match(/EMAIL SUBJECT:\\s*(.*?)(?:\\\\n|$)/)?.[1] || 'Thank you for your interest in our services' }}",
+        "message": "={{ $json.output.split('EMAIL BODY:')[1]?.trim() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        0
+      ],
+      "id": "f13a2535-e31d-4d8b-b8ce-7be16419a2f9",
+      "name": "Send a message",
+      "webhookId": "ca6870f4-c020-4e8e-9212-39fbaf0cb976",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JhDLAfeHvDpVkmER",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1TplavxqknbtdGJeaONLQZL3N54vXQTqCQbOOO0AKGkk",
+          "mode": "list",
+          "cachedResultName": "Smart Lead Automation Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TplavxqknbtdGJeaONLQZL3N54vXQTqCQbOOO0AKGkk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 802788179,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TplavxqknbtdGJeaONLQZL3N54vXQTqCQbOOO0AKGkk/edit#gid=802788179"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email Address": "={{ $('Google Sheets Trigger').item.json['Email Address'] }}",
+            "Timestamp": "=",
+            "Full Name": "={{ $('Google Sheets Trigger').item.json['Full Name'] }}",
+            "Phone Number": "={{ $('Google Sheets Trigger').item.json['Phone Number'] }}",
+            "Company Name": "={{ $('Google Sheets Trigger').item.json['Company Name'] }}",
+            "Interested Service": "={{ $('Google Sheets Trigger').item.json['Interested Service'] }}",
+            "Budget": "={{ $('Google Sheets Trigger').item.json['Budget'] }}",
+            "Describe your requirement or project briefly": "={{ $('Google Sheets Trigger').item.json['Describe your requirement or project briefly'] }}",
+            "Email Status": "=Sent",
+            "Lead Qualification": "={{ String($('AI Agent').item.json.output || '').match(/LEAD QUALIFICATION:\\s*(Warm|Hot|Cold)/i)?.[1] || '' }}",
+            "Lead Score": "={{ String($('AI Agent').item.json.output || '').match(/LEAD SCORE:\\s*(\\d+)/)?.[1] || '' }}",
+            "Requirement Analysis": "={{ $('AI Agent').item.json.output.split('REQUIREMENT ANALYSIS:')[1]?.split('RECOMMENDED NEXT ACTION:')[0]?.replace(/\\\\n/g, ' ').replace(/\\n/g, ' ').trim() || '' }}",
+            "Recommended Next Action": "={{ $('AI Agent').item.json.output.match(/RECOMMENDED NEXT ACTION:\\s*([\\s\\S]*?)(?=EMAIL SUBJECT:|EMAIL_SUBJECT:|PERSONALIZED EMAIL:|EMAIL BODY:|$)/i)?.[1]?.replace(/\\\\n/g, ' ').replace(/\\n/g, ' ').trim() || '' }}"
+          },
+          "matchingColumns": [
+            "Email Address"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Address",
+              "displayName": "Email Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Interested Service",
+              "displayName": "Interested Service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Describe your requirement or project briefly",
+              "displayName": "Describe your requirement or project briefly",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Status",
+              "displayName": "Email Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Qualification",
+              "displayName": "Lead Qualification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Requirement Analysis",
+              "displayName": "Requirement Analysis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Recommended Next Action",
+              "displayName": "Recommended Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        816,
+        0
+      ],
+      "id": "5fe7c615-bfe7-4a06-874d-231156b962b1",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "faW70mzoE43VicRN",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ String($('AI Agent').item.json.output || '').match(/LEAD QUALIFICATION:\\s*(Hot|Warm|Cold)/i)?.[1]?.toLowerCase() || 'unknown' }}",
+                    "rightValue": "hot",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "4a51641d-76dd-4ab2-8652-9fe4fb93ce1b"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "67a51511-b816-4674-ba78-24b65a0465dd",
+                    "leftValue": "={{ String($('AI Agent').item.json.output || '').match(/LEAD QUALIFICATION:\\s*(Hot|Warm|Cold)/i)?.[1]?.toLowerCase() || 'unknown' }}",
+                    "rightValue": "warm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "665706bb-9bcd-4013-9dd3-7d3cfc2f0e06",
+                    "leftValue": "={{ String($('AI Agent').item.json.output || '').match(/LEAD QUALIFICATION:\\s*(Hot|Warm|Cold)/i)?.[1]?.toLowerCase() || 'unknown' }}",
+                    "rightValue": "cold",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "2e8b078f-92fe-4785-918f-cad15dfdb1d5",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets Trigger').item.json['Email Address'] }}",
+        "subject": "={{ ($json.output || '').match(/EMAIL SUBJECT:\\s*([^\\n]+)/i)?.[1]?.trim() || 'Follow-up regarding your AI automation requirement' }}",
+        "message": "={{ String($json.output || '').match(/EMAIL SUBJECT:\\s*([^\\n]+)/i)?.[1]?.trim() || 'Follow-up regarding your AI automation requirement' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        -112
+      ],
+      "id": "1f1d620d-eeaa-4c1f-ada8-6c9233863821",
+      "name": "Send a message1",
+      "webhookId": "c09faefb-498b-4ad1-8d2c-fbd7c1852375",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JhDLAfeHvDpVkmER",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets Trigger').item.json['Email Address'] }}",
+        "subject": "={{ String($json.output || '').match(/EMAIL SUBJECT:\\s*([^\\n]+)/i)?.[1]?.trim() || 'Follow-up regarding your AI automation requirement' }}",
+        "message": "=<h2>🤝 Personalized Lead Follow-up</h2>\n\n<p>Hello {{ $('Google Sheets Trigger').item.json['Full Name'] }},</p>\n\n<p>Thank you for your interest in our AI automation solutions.</p>\n\n<p>We understand that you're looking to improve your business processes through automation. Our team can help you design an intelligent solution tailored to your requirements, helping streamline operations, improve efficiency, and automate repetitive tasks.</p>\n\n<hr>\n\n<h3>Your Requirement</h3>\n\n<ul>\n<li><strong>Company:</strong> {{ $('Google Sheets Trigger').item.json['Company Name'] }}</li>\n<li><strong>Service:</strong> {{ $('Google Sheets Trigger').item.json['Interested Service'] }}</li>\n<li><strong>Budget:</strong> {{ $('Google Sheets Trigger').item.json['Budget'] }}</li>\n</ul>\n\n<hr>\n\n<p>We would be happy to arrange a brief 15-minute discovery call to understand your requirements in more detail and discuss the best approach for your business.</p>\n\n<p>Please let us know a convenient time to connect.</p>\n\n<p>Best regards,<br>\n<strong>The AI Solutions Team</strong></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        48
+      ],
+      "id": "70e49aef-4d09-4ae4-91d8-ca2d6262ada8",
+      "name": "Send a message2",
+      "webhookId": "50d2b182-208d-469b-995d-21070f5c71be",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JhDLAfeHvDpVkmER",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets Trigger').item.json['Email Address'] }}",
+        "subject": "={{ String($('AI Agent').item.json.output || '').match(/EMAIL SUBJECT:\\s*([^\\n]+)/i)?.[1]?.trim() || 'Thank you for your interest in our AI automation services' }}",
+        "message": "=<h2>Thank You for Your Interest</h2>\n\n<p>Hello {{ $('Google Sheets Trigger').item.json['Full Name'] }},</p>\n\n<p>Thank you for reaching out to us regarding our AI automation services.</p>\n\n<p>We understand that you're exploring ways to improve your business operations through automation. Our team would be happy to share insights, solutions, and ideas that could help your business streamline processes and improve efficiency.</p>\n\n<hr>\n\n<h3>Your Inquiry</h3>\n\n<ul>\n<li><strong>Company:</strong> {{ $('Google Sheets Trigger').item.json['Company Name'] }}</li>\n<li><strong>Service:</strong> {{ $('Google Sheets Trigger').item.json['Interested Service'] }}</li>\n</ul>\n\n<p>Whenever you're ready to explore your requirements further, feel free to reply to this email. We would be happy to assist you and discuss potential solutions.</p>\n\n<p>Thank you for considering us.</p>\n\n<p>Best regards,<br>\n<strong>The AI Solutions Team</strong></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        224
+      ],
+      "id": "346ead28-952e-4c57-96f9-cb8bbc88958d",
+      "name": "Send a message3",
+      "webhookId": "c1dda364-7478-44fd-b652-76825505b90b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JhDLAfeHvDpVkmER",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "915274fc-aaa7-40b5-b594-37151309d3c9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5591f666ca594520a0518e1fcc47e68bfdec0c0990e23fac08c2e8d896035c6f"
+  },
+  "nodeGroups": [],
+  "id": "8ffOVlpijWs6IRZf",
+  "tags": []
+}
